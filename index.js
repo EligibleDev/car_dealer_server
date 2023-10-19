@@ -9,8 +9,7 @@ const port = process.env.local || 5000;
 app.use(cors());
 app.use(express.json());
 
-
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.v1znjtl.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://mikailhossain0202:uWojYGpeAOUSpcyU@cluster0.v1znjtl.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -26,6 +25,33 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
         // Send a ping to confirm a successful connection
+
+        const carsCollection = client.db("carDB").collection("car");
+        const brandsCollection = client.db("carDB").collection("brands");
+
+        //receiving a new car from frontend
+        app.post("/cars", async (req, res) => {
+            const newCar = req.body;
+            console.log(newCar);
+
+            const result = await carsCollection.insertOne(newCar);
+            res.send(result);
+        });
+
+        //getting cars data for the brands details page
+        app.get("/cars", async (req, res) => {
+            const cursor = carsCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        //accessing the brands data to show on the home page
+        app.get("/brands", async (req, res) => {
+            const cursor = brandsCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
