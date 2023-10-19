@@ -54,6 +54,15 @@ async function run() {
             res.send(brand);
         });
 
+        //getting data for product single page
+        app.get("/cars/:link", async (req, res) => {
+            const link = req.params.link;
+            const query = {link: link}; 
+            const car = await carsCollection.findOne(query);
+
+            res.send(car);
+        })
+
         //accessing the brands data to show on the home page
         app.get("/brands", async (req, res) => {
             const cursor = brandsCollection.find();
