@@ -3,7 +3,7 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
-const port = process.env.local || 5000;
+const port = process.env.PORT || 5000;
 
 //middleware
 app.use(cors());
@@ -49,10 +49,17 @@ async function run() {
             res.send(result);
         });
 
+        // app.post("/cart", async (req, res) => {
+        //     const cartItem = req.body;
+
+        //     const result = await cartCollection.insertOne(cartItem);
+        //     res.send(result);
+        // });
+
         // sending users to the db
         app.post("/users", async (req, res) => {
             const user = req.body;
-            console.log(user);
+            console.log(user.providerData.email);
 
             const result = await users.insertOne(user);
             res.send(result);
@@ -113,6 +120,15 @@ async function run() {
         app.get("/cart", async (req, res) => {
             const cursor = cart.find();
 
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        app.get("/my-cart/:email", async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+
+            const cursor = cart.find(query);
             const result = await cursor.toArray();
             res.send(result);
         });
