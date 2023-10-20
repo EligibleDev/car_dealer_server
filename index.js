@@ -9,7 +9,7 @@ const port = process.env.local || 5000;
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://mikailhossain0202:uWojYGpeAOUSpcyU@cluster0.v1znjtl.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.v1znjtl.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -28,6 +28,8 @@ async function run() {
 
         const carsCollection = client.db("carDB").collection("car");
         const brandsCollection = client.db("carDB").collection("brands");
+        const cart = client.db("carDB").collection("cart");
+        const users = client.db("carDB").collection("users");
 
         //receiving a new car from frontend
         app.post("/cars", async (req, res) => {
@@ -38,9 +40,36 @@ async function run() {
             res.send(result);
         });
 
-        //getting cars data for the brands details page
+        //sending cars to the cart page
+        app.post("/cart", async (req, res) => {
+            const recentlyAddedToCart = req.body;
+            console.log(recentlyAddedToCart);
+
+            const result = await cart.insertOne(recentlyAddedToCart);
+            res.send(result);
+        });
+
+        // sending users to the db
+        app.post("/users", async (req, res) => {
+            const user = req.body;
+            console.log(user);
+
+            const result = await users.insertOne(user);
+            res.send(result);
+        });
+
+        //getting user data
+        app.get("/users", async (req, res) => {
+            const cursor = users.find();
+
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        //all cars data
         app.get("/cars", async (req, res) => {
             const cursor = carsCollection.find();
+
             const result = await cursor.toArray();
             res.send(result);
         });
@@ -49,24 +78,84 @@ async function run() {
         app.get("/brands/:name", async (req, res) => {
             const name = req.params.name;
             const query = { name: name };
-            const brand = await brandsCollection.findOne(query);
 
+            const brand = await brandsCollection.findOne(query);
             res.send(brand);
         });
 
-        //getting data for product single page
-        app.get("/cars/:link", async (req, res) => {
-            const link = req.params.link;
-            const query = {link: link}; 
-            const car = await carsCollection.findOne(query);
+        // filtered cars by brand
+        app.get("/cars/by_brand/:brandName", async (req, res) => {
+            const brandName = req.params.brandName;
+            const cursor = carsCollection.find({ brand: brandName });
 
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        //getting data for product car details
+        app.get("/cars/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+
+            const car = await carsCollection.findOne(query);
             res.send(car);
-        })
+        });
 
         //accessing the brands data to show on the home page
         app.get("/brands", async (req, res) => {
             const cursor = brandsCollection.find();
+
             const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        //getting data from the cart page
+        app.get("/cart", async (req, res) => {
+            const cursor = cart.find();
+
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        //updating car
+        app.put("/cars/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+
+            const options = { upsert: true };
+            const updatedCar = req.body;
+            console.log(updatedCar);
+            const car = {
+                $set: {
+                    name: updatedCar.name,
+                    price: updatedCar.price,
+                    brand: updatedCar.brand,
+                    type: updatedCar.type,
+                    image: updatedCar.image,
+                    description: updatedCar.description,
+                    rating: updatedCar.rating,
+                },
+            };
+
+            const result = await carsCollection.updateOne(query, car, options);
+            res.send(result);
+        });
+
+        //cart single data
+        app.get("/cart/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+
+            const result = await cart.findOne(query);
+            res.send(result);
+        });
+
+        //deleting from cart
+        app.delete("/cart/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+
+            const result = await cart.deleteOne(query);
             res.send(result);
         });
 
